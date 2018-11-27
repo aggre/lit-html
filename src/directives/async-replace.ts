@@ -12,7 +12,7 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-import {directive, Directive, NodePart} from '../lit-html.js';
+import {directive, NodePart, Part} from '../lit-html.js';
 
 /**
  * A directive that renders the items of an async iterable[1], replacing
@@ -32,9 +32,12 @@ import {directive, Directive, NodePart} from '../lit-html.js';
  * @param mapper An optional function that maps from (value, index) to another
  *     value. Useful for generating templates for each item in the iterable.
  */
-export const asyncReplace =
-    <T>(value: AsyncIterable<T>, mapper?: (v: T, index?: number) => any):
-        Directive<NodePart> => directive(async (part: NodePart) => {
+export const asyncReplace = directive(
+    <T>(value: AsyncIterable<T>, mapper?: (v: T, index?: number) => any) =>
+        async (part: Part) => {
+          if (!(part instanceof NodePart)) {
+            throw new Error('asyncReplace can only be used in text bindings');
+          }
           // If we've already set up this particular iterable, we don't need
           // to do anything.
           if (value === part.value) {
@@ -49,17 +52,17 @@ export const asyncReplace =
           let i = 0;
 
           for await (let v of value) {
+            // Check to make sure that value is the still the current value of
+            // the part, and if not bail because a new value owns this part
+            if (part.value !== value) {
+              break;
+            }
+
             // When we get the first value, clear the part. This let's the
             // previous value display until we can replace it.
             if (i === 0) {
               part.clear();
               itemPart.appendIntoPart(part);
-            }
-
-            // Check to make sure that value is the still the current value of
-            // the part, and if not bail because a new value owns this part
-            if (part.value !== value) {
-              break;
             }
 
             // As a convenience, because functional-programming-style
