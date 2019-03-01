@@ -17,6 +17,8 @@ import {renderShadowRoot} from '../test-utils/shadow-root.js';
 
 const assert = chai.assert;
 
+// tslint:disable:no-any OK in test code.
+
 suite('shady-render', () => {
   test('style elements apply in shadowRoots', () => {
     const container = document.createElement('scope-1');
@@ -85,6 +87,22 @@ suite('shady-render', () => {
     assert.equal(container2.shadowRoot!.textContent, '44-55-66');
     document.body.removeChild(container1);
     document.body.removeChild(container2);
+  });
+
+  test('multiple renders re-use rendered DOM', () => {
+    const container = document.createElement('scope-re-use');
+    document.body.appendChild(container);
+    const renderTemplate = (a: string) => {
+      const result = html`
+            <div id="a">${a}</div>
+      `;
+      renderShadowRoot(result, container);
+    };
+    renderTemplate('a');
+    const renderedNode = container.shadowRoot!.querySelector('#a');
+    renderTemplate('b');
+    assert.equal(container.shadowRoot!.querySelector('#a'), renderedNode);
+    document.body.removeChild(container);
   });
 
   test('styles with css custom properties render', () => {
